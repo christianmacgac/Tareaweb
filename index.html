@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101321">
+  <title>Gato — Tres en raya</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101321;
+      --panel: rgba(26, 30, 49, 0.88);
+      --cell: #20243a;
+      --text: #f5f5ff;
+      --muted: #9298b4;
+      --pink: #ff6b9d;
+      --blue: #72d9ff;
+      --green: #9becb1;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+      overflow-x: hidden;
+      background:
+        radial-gradient(ellipse at 18% 15%, rgba(114, 217, 255, 0.12), transparent 32%),
+        radial-gradient(ellipse at 82% 86%, rgba(255, 107, 157, 0.12), transparent 34%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .game {
+      width: min(100%, 430px);
+      padding: clamp(24px, 6vw, 38px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+      backdrop-filter: blur(16px);
+    }
+
+    header { text-align: center; }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--blue);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 9vw, 3rem);
+      letter-spacing: -0.07em;
+      line-height: 1;
+    }
+
+    h1 span { color: var(--pink); }
+
+    .subtitle {
+      margin: 12px 0 26px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .settings {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .setting {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .setting[hidden] { display: none; }
+
+    .setting select {
+      width: 100%;
+      min-height: 43px;
+      padding: 0 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      background: var(--cell);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.88rem;
+    }
+
+    .setting select:focus-visible {
+      outline: 3px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .scoreboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .score {
+      padding: 13px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.035);
+      text-align: center;
+    }
+
+    .score-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .score-label strong { font-size: 1rem; }
+    .score-x strong { color: var(--pink); }
+    .score-o strong { color: var(--blue); }
+    .score-value { display: block; margin-top: 4px; font-size: 1.35rem; font-weight: 800; }
+
+    .status {
+      min-height: 28px;
+      margin: 0 0 15px;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .status .mark-x { color: var(--pink); }
+    .status .mark-o { color: var(--blue); }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      aspect-ratio: 1;
+    }
+
+    .cell {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      border: 1px solid rgba(255, 255, 255, 0.055);
+      border-radius: 18px;
+      background: var(--cell);
+      color: var(--text);
+      font: inherit;
+      font-size: clamp(2.8rem, 16vw, 4.4rem);
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+    }
+
+    .cell:not(:disabled):hover {
+      transform: translateY(-2px);
+      border-color: rgba(114, 217, 255, 0.35);
+      background: #282d47;
+    }
+
+    .cell:focus-visible, .button:focus-visible {
+      outline: 3px solid var(--blue);
+      outline-offset: 3px;
+    }
+
+    .cell.mark-x { color: var(--pink); }
+    .cell.mark-o { color: var(--blue); }
+    .cell:disabled { cursor: default; }
+    .cell.winner { border-color: rgba(155, 236, 177, 0.65); background: rgba(155, 236, 177, 0.14); }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .button {
+      min-height: 46px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 13px;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 140ms ease, opacity 140ms ease;
+    }
+
+    .button:hover { transform: translateY(-1px); }
+    .button-primary { background: var(--blue); color: #101321; }
+    .button-secondary { border: 1px solid rgba(255, 255, 255, 0.1); background: transparent; color: var(--muted); }
+
+    .hint {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 0.76rem;
+      text-align: center;
+    }
+
+    @media (max-width: 360px) {
+      .game { padding: 22px 18px; }
+      .board { gap: 7px; }
+      .cell { border-radius: 14px; }
+      .actions { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <header>
+      <p class="eyebrow">Duelo de ingenio</p>
+      <h1>Gato<span>.</span></h1>
+      <p class="subtitle">Tres en raya. ¿Quién se lleva la partida?</p>
+    </header>
+
+    <section class="settings" aria-label="Opciones de juego">
+      <label class="setting" for="game-mode">
+        Modo de juego
+        <select id="game-mode">
+          <option value="computer">Contra la máquina</option>
+          <option value="two-players">Dos jugadores</option>
+        </select>
+      </label>
+      <label class="setting" id="difficulty-setting" for="difficulty">
+        Dificultad
+        <select id="difficulty">
+          <option value="easy">Fácil</option>
+          <option value="medium">Media</option>
+          <option value="hard">Difícil</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="scoreboard" aria-label="Marcador">
+      <div class="score score-x">
+        <span class="score-label"><strong aria-hidden="true">×</strong> Jugador X</span>
+        <span class="score-value" id="score-x">0</span>
+      </div>
+      <div class="score score-o">
+        <span class="score-label"><strong aria-hidden="true">○</strong> <span id="opponent-label">Máquina (O)</span></span>
+        <span class="score-value" id="score-o">0</span>
+      </div>
+    </section>
+
+    <p class="status" id="status" aria-live="polite"></p>
+
+    <section class="board" id="board" role="group" aria-label="Tablero de Gato">
+      <button class="cell" type="button" data-index="0" aria-label="Casilla 1, vacía"></button>
+      <button class="cell" type="button" data-index="1" aria-label="Casilla 2, vacía"></button>
+      <button class="cell" type="button" data-index="2" aria-label="Casilla 3, vacía"></button>
+      <button class="cell" type="button" data-index="3" aria-label="Casilla 4, vacía"></button>
+      <button class="cell" type="button" data-index="4" aria-label="Casilla 5, vacía"></button>
+      <button class="cell" type="button" data-index="5" aria-label="Casilla 6, vacía"></button>
+      <button class="cell" type="button" data-index="6" aria-label="Casilla 7, vacía"></button>
+      <button class="cell" type="button" data-index="7" aria-label="Casilla 8, vacía"></button>
+      <button class="cell" type="button" data-index="8" aria-label="Casilla 9, vacía"></button>
+    </section>
+
+    <div class="actions">
+      <button class="button button-primary" id="restart" type="button">Nueva ronda</button>
+      <button class="button button-secondary" id="reset" type="button">Reiniciar marcador</button>
+    </div>
+    <p class="hint" id="hint">Tú juegas con X · La máquina juega con O</p>
+  </main>
+
+  <script>
+    const cells = Array.from(document.querySelectorAll(".cell"));
+    const status = document.querySelector("#status");
+    const gameMode = document.querySelector("#game-mode");
+    const difficulty = document.querySelector("#difficulty");
+    const difficultySetting = document.querySelector("#difficulty-setting");
+    const opponentLabel = document.querySelector("#opponent-label");
+    const hint = document.querySelector("#hint");
+    const scores = {
+      X: document.querySelector("#score-x"),
+      O: document.querySelector("#score-o")
+    };
+    const winningLines = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+
+    let board = Array(9).fill("");
+    let currentPlayer = "X";
+    let gameOver = false;
+    let computerThinking = false;
+    let score = { X: 0, O: 0 };
+
+    function showTurn() {
+      if (isComputerTurn()) {
+        status.textContent = "La máquina está pensando…";
+      } else if (gameMode.value === "computer") {
+        status.innerHTML = `Tu turno <span class="mark-${currentPlayer.toLowerCase()}">(${currentPlayer})</span>`;
+      } else {
+        status.innerHTML = `Turno de <span class="mark-${currentPlayer.toLowerCase()}">${currentPlayer}</span>`;
+      }
+    }
+
+    function isComputerTurn() {
+      return gameMode.value === "computer" && currentPlayer === "O";
+    }
+
+    function getWinner(position) {
+      return winningLines.find((line) => line.every((index) => position[index] && position[index] === position[line[0]]));
+    }
+
+    function finishRound(winner) {
+      gameOver = true;
+      if (winner) {
+        score[winner] += 1;
+        scores[winner].textContent = score[winner];
+        const winnerName = winner === "O" && gameMode.value === "computer" ? "¡Gana la máquina!" : `¡Gana ${winner === "X" ? "el jugador X" : "el jugador O"}!`;
+        status.textContent = winnerName;
+        getWinner(board).forEach((index) => cells[index].classList.add("winner"));
+      } else {
+        status.textContent = "¡Empate! Buen juego.";
+      }
+      cells.forEach((cell) => { cell.disabled = true; });
+    }
+
+    function placeMark(index, player) {
+      board[index] = player;
+      const cell = cells[index];
+      cell.textContent = player === "X" ? "×" : "○";
+      cell.classList.add(`mark-${player.toLowerCase()}`);
+      cell.setAttribute("aria-label", `Casilla ${index + 1}, ${player}`);
+      cell.disabled = true;
+    }
+
+    function play(index) {
+      if (gameOver || computerThinking || board[index] || isComputerTurn()) return;
+
+      const player = currentPlayer;
+      placeMark(index, player);
+      const winner = getWinner(board);
+      if (winner) {
+        finishRound(player);
+      } else if (board.every(Boolean)) {
+        finishRound(null);
+      } else {
+        currentPlayer = player === "X" ? "O" : "X";
+        if (isComputerTurn()) {
+          computerThinking = true;
+          cells.forEach((cell, position) => { cell.disabled = Boolean(board[position]); });
+          showTurn();
+          window.setTimeout(playComputerTurn, 450);
+        } else {
+          showTurn();
+        }
+      }
+    }
+
+    function findImmediateMove(position, player) {
+      for (let index = 0; index < position.length; index += 1) {
+        if (!position[index]) {
+          position[index] = player;
+          const wins = Boolean(getWinner(position));
+          position[index] = "";
+          if (wins) return index;
+        }
+      }
+      return -1;
+    }
+
+    function minimax(position, player, depth) {
+      if (getWinner(position)) return { score: player === "O" ? depth - 10 : 10 - depth };
+      if (position.every(Boolean)) return { score: 0 };
+
+      let best = { score: player === "O" ? -Infinity : Infinity, index: -1 };
+      for (let index = 0; index < position.length; index += 1) {
+        if (position[index]) continue;
+        position[index] = player;
+        const result = minimax(position, player === "O" ? "X" : "O", depth + 1);
+        position[index] = "";
+        if ((player === "O" && result.score > best.score) || (player === "X" && result.score < best.score)) {
+          best = { score: result.score, index };
+        }
+      }
+      return best;
+    }
+
+    function chooseComputerMove() {
+      const available = board.flatMap((mark, index) => mark ? [] : [index]);
+      if (difficulty.value === "easy") {
+        return available[Math.floor(Math.random() * available.length)];
+      }
+      if (difficulty.value === "medium") {
+        const winningMove = findImmediateMove(board, "O");
+        if (winningMove !== -1) return winningMove;
+        const blockingMove = findImmediateMove(board, "X");
+        if (blockingMove !== -1) return blockingMove;
+        if (!board[4]) return 4;
+        const corners = available.filter((index) => [0, 2, 6, 8].includes(index));
+        const choices = corners.length ? corners : available;
+        return choices[Math.floor(Math.random() * choices.length)];
+      }
+      return minimax(board.slice(), "O", 0).index;
+    }
+
+    function playComputerTurn() {
+      if (gameOver || !isComputerTurn()) return;
+      computerThinking = false;
+      const index = chooseComputerMove();
+      placeMark(index, "O");
+      if (getWinner(board)) {
+        finishRound("O");
+      } else if (board.every(Boolean)) {
+        finishRound(null);
+      } else {
+        currentPlayer = "X";
+        showTurn();
+      }
+    }
+
+    function startRound() {
+      board = Array(9).fill("");
+      currentPlayer = "X";
+      gameOver = false;
+      computerThinking = false;
+      cells.forEach((cell, index) => {
+        cell.textContent = "";
+        cell.disabled = false;
+        cell.classList.remove("mark-x", "mark-o", "winner");
+        cell.setAttribute("aria-label", `Casilla ${index + 1}, vacía`);
+      });
+      showTurn();
+    }
+
+    function updateMode() {
+      const againstComputer = gameMode.value === "computer";
+      difficultySetting.hidden = !againstComputer;
+      opponentLabel.textContent = againstComputer ? "Máquina (O)" : "Jugador O";
+      hint.textContent = againstComputer
+        ? "Tú juegas con X · La máquina juega con O"
+        : "Dos jugadores · X comienza la partida";
+      startRound();
+    }
+
+    cells.forEach((cell) => {
+      cell.addEventListener("click", () => play(Number(cell.dataset.index)));
+    });
+    gameMode.addEventListener("change", updateMode);
+    difficulty.addEventListener("change", startRound);
+    document.querySelector("#restart").addEventListener("click", startRound);
+    document.querySelector("#reset").addEventListener("click", () => {
+      score = { X: 0, O: 0 };
+      scores.X.textContent = "0";
+      scores.O.textContent = "0";
+      startRound();
+    });
+    showTurn();
+  </script>
+</body>
+</html>
